@@ -63,5 +63,19 @@ int main(int argc, char **argv[]) {
         }
 
         printf("Read %d bytes type=0x%04x(=%s)\n", rsize, first, type);
+        printf("dst addr=%x:%x:%x:%x:%x:%x\n", 
+                ethdr->dst_addr[0],
+                ethdr->dst_addr[1],
+                ethdr->dst_addr[2],
+                ethdr->dst_addr[3],
+                ethdr->dst_addr[4],
+                ethdr->dst_addr[5]);
+        printf("src addr=%x:%x:%x:%x:%x:%x\n", 
+                ethdr->src_addr[0],
+                ethdr->src_addr[1],
+                ethdr->src_addr[2],
+                ethdr->src_addr[3],
+                ethdr->src_addr[4],
+                ethdr->src_addr[5]);
     }
 }
