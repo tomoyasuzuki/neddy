@@ -1,7 +1,15 @@
 CC = gcc
+TARGET = neddy
+OBJECTS = main.o tap.o ether.o arp.o util.o
 
 all: 
-	$(CC) -o neddy main.c 
+	make $(TARGET)
+
+%.o: %.c Makefile
+	$(CC) -c $<
+
+$(TARGET): $(OBJECTS) Makefile
+	$(CC) -o $(TARGET) $(OBJECTS)
 
 clean: 
-	rm -rf neddy
+	rm -rf $(TARGET) $(OBJECTS)

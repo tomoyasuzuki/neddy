@@ -3,79 +3,63 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
 #include <features.h>
 #include <stdint.h>
-
-#define ETHERNET_HEADER_SIZE 14
-#define MAX_PACKET_SIZE 1000
-#define TYPE_IPV4 0x0800
-#define TYPE_IPV6 0x86dd
-#define TYPE_ARP 0x0806
-
-struct ether_hdr {
-    uint8_t dst_addr[6];
-    uint8_t src_addr[6];
-    uint16_t type;
-};
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include "ether.h"
+#include "arp.h"
+#include "tap.h"
+#include "util.h"
 
 int main(int argc, char **argv[]) {
-    int tapfd;
-    struct ifreq ifr;
     void *buff;
     int rsize;
 
-    if ((tapfd = open("/dev/net/tun", O_RDWR)) < 0) {
-        perror("error");
-    }
-
-    memset(&ifr, 0, sizeof(ifr));
-    ifr.ifr_ifru.ifru_flags = IFF_TAP | IFF_NO_PI;
-    strncpy(ifr.ifr_name, "tap77", IFNAMSIZ);
-    
-    if (ioctl(tapfd, TUNSETIFF, &ifr) < 0) {
-        perror("error");
+    if (register_tap("tap77") < 0) {
+        exit(0);
     }
 
     buff = malloc(MAX_PACKET_SIZE);
 
     for (;;) {
-        rsize = read(tapfd, buff, MAX_PACKET_SIZE);
+        rsize = read_packet(buff, MAX_PACKET_SIZE);
 
-        struct ether_hdr *ethdr = malloc(ETHERNET_HEADER_SIZE);
-        memcpy(ethdr, buff, ETHERNET_HEADER_SIZE);
+        struct ether_hdr *ethdr = (struct ether_hdr*)buff;
 
-        uint16_t first = ethdr->type << 8;
-        uint16_t second = ethdr->type >> 8;
-        first |= second;
+        dump_ether(ethdr);
 
-        char *type;
-        if (first == TYPE_IPV4) {
-            type = "IPv4";
-        } else if (first == TYPE_ARP) {
-            type = "ARP";
-        } else if (first == TYPE_IPV6) {
-            type = "IPv6";
-        } else {
-            type = "Unknown";
+        struct arp_packet *arp;
+
+        if (conv_endian16(ethdr->type) == 0x0806) {
+            arp = (struct arp_packet*)buff;
+            dump_arp(arp);  
+            handle_arp(arp);
         }
 
-        printf("Read %d bytes type=0x%04x(=%s)\n", rsize, first, type);
-        printf("dst addr=%x:%x:%x:%x:%x:%x\n", 
-                ethdr->dst_addr[0],
-                ethdr->dst_addr[1],
-                ethdr->dst_addr[2],
-                ethdr->dst_addr[3],
-                ethdr->dst_addr[4],
-                ethdr->dst_addr[5]);
-        printf("src addr=%x:%x:%x:%x:%x:%x\n", 
-                ethdr->src_addr[0],
-                ethdr->src_addr[1],
-                ethdr->src_addr[2],
-                ethdr->src_addr[3],
-                ethdr->src_addr[4],
-                ethdr->src_addr[5]);
+        //00:00:5e:00:53:01
+        // if (type == "ARP") {
+        //     struct icmp_hdr icmphdr;
+        //     int icmpsize = sizeof(struct icmp_hdr) + ICMP_MAX_LENGTH;
+        //     char *icmptype;
+            
+        //     memset(&icmphdr, 0, icmpsize);
+        //     memcpy(&icmphdr, buff, icmpsize);
+
+        //     if (!icmphdr.type) {
+        //         icmptype = "Echo Reply";
+        //     } else if (icmphdr.type == 8) {
+        //         icmptype = "Echo Request";
+        //     }
+
+        //     for (int j = 0; j < 100; j++) {
+        //         printf("%x ", *((uint8_t*)&icmphdr+j));
+        //     }
+        //     printf("\n\n");
+
+        //     printf("ICMP type=0x%x(%s) code=0x%x\n", icmphdr.type, icmptype, icmphdr.code);
+        // }
     }
 }
