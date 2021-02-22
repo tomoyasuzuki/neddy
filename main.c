@@ -11,6 +11,8 @@
 #include <sys/ioctl.h>
 #include "ether.h"
 #include "arp.h"
+#include "icmp.h"
+#include "ip.h"
 #include "tap.h"
 #include "util.h"
 
@@ -26,40 +28,28 @@ int main(int argc, char **argv[]) {
 
     for (;;) {
         rsize = read_packet(buff, MAX_PACKET_SIZE);
+        printf("read %d bytes\n", rsize);
 
         struct ether_hdr *ethdr = (struct ether_hdr*)buff;
 
         dump_ether(ethdr);
 
-        struct arp_packet *arp;
+        switch (conv_endian16(ethdr->type)) {
+        case 0x0806:
+            dump_arp((struct arp_packet*)buff);
+            handle_arp((struct arp_packet*)buff);
+            break;
+        case 0x0800:
+            dump_ip((struct ip_hdr*)(buff+14));
+            handle_icmp(buff);
 
-        if (conv_endian16(ethdr->type) == 0x0806) {
-            arp = (struct arp_packet*)buff;
-            dump_arp(arp);  
-            handle_arp(arp);
+            printf("\n[raw packet]\n");
+            for (int i = 0; i < 63; i++) {
+                printf("%d: %x ", i, *(char*)(buff+i));
+            }
+            break;
+        default:
+            break;
         }
-
-        //00:00:5e:00:53:01
-        // if (type == "ARP") {
-        //     struct icmp_hdr icmphdr;
-        //     int icmpsize = sizeof(struct icmp_hdr) + ICMP_MAX_LENGTH;
-        //     char *icmptype;
-            
-        //     memset(&icmphdr, 0, icmpsize);
-        //     memcpy(&icmphdr, buff, icmpsize);
-
-        //     if (!icmphdr.type) {
-        //         icmptype = "Echo Reply";
-        //     } else if (icmphdr.type == 8) {
-        //         icmptype = "Echo Request";
-        //     }
-
-        //     for (int j = 0; j < 100; j++) {
-        //         printf("%x ", *((uint8_t*)&icmphdr+j));
-        //     }
-        //     printf("\n\n");
-
-        //     printf("ICMP type=0x%x(%s) code=0x%x\n", icmphdr.type, icmptype, icmphdr.code);
-        // }
     }
 }

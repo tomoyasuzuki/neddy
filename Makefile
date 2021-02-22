@@ -1,6 +1,6 @@
 CC = gcc
 TARGET = neddy
-OBJECTS = main.o tap.o ether.o arp.o util.o
+OBJECTS = main.o tap.o ether.o arp.o util.o icmp.o ip.o
 
 all: 
 	make $(TARGET)

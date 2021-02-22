@@ -1,6 +1,7 @@
 #include "ether.h"
 
 void dump_ether(struct ether_hdr *e) {
+    printf("[Ether header]\n");
     printf("dst addr=%x:%x:%x:%x:%x:%x\n", 
             e->dst_addr[0],
             e->dst_addr[1],

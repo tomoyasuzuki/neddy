@@ -53,6 +53,7 @@ int arp_reply(struct arp_packet *request) {
 }
 
 void dump_arp(struct arp_packet *arp) {
+    printf("[ARP header]\n");
     printf("hard_type=%x ", conv_endian16(arp->hard));
     printf("len %x\n", arp->hard_len);
     printf("pro_type=%x ", conv_endian16(arp->pro));
