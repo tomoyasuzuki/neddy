@@ -15,6 +15,7 @@
 #include "ip.h"
 #include "tap.h"
 #include "util.h"
+#include "tcp.h"
 
 int main(int argc, char **argv[]) {
     void *buff;
@@ -35,18 +36,13 @@ int main(int argc, char **argv[]) {
         dump_ether(ethdr);
 
         switch (conv_endian16(ethdr->type)) {
-        case 0x0806:
+        case TYPE_ARP:
             dump_arp((struct arp_packet*)buff);
             handle_arp((struct arp_packet*)buff);
             break;
-        case 0x0800:
+        case TYPE_IPV4:
             dump_ip((struct ip_hdr*)(buff+14));
-            handle_icmp(buff);
-
-            printf("\n[raw packet]\n");
-            for (int i = 0; i < 63; i++) {
-                printf("%d: %x ", i, *(char*)(buff+i));
-            }
+            dump_tcp((struct tcp_hdr*)(buff+34));
             break;
         default:
             break;
